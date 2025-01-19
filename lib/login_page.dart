@@ -193,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
 
-          // Pinned bottom "Sign In" button
+          // Pinned bottom "Continue" button
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
             child: SizedBox(

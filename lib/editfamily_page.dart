@@ -378,24 +378,24 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
             ),
             const SizedBox(height: 8),
 
-            // If no family members
-            if (familyMemberUids.isEmpty || 
-              familyMemberUids.length != familyMembersNames.length || 
-              familyMemberUids.length != familyMembersEmails.length) ...[
+            if (familyMemberUids.isEmpty) ...[
+              // No family members
+              const Center(
+                child: Text('You have no family members yet.'),
+              ),
+            ] else if (familyMemberUids.length != familyMembersNames.length ||
+                      familyMemberUids.length != familyMembersEmails.length) ...[
+              // Still loading or out of sync
               const Center(child: CircularProgressIndicator()),
             ] else ...[
-              // Show each family member in a grey rectangle
+              // Show the list of family members
               ListView.builder(
                 shrinkWrap: true,
                 itemCount: familyMemberUids.length,
                 itemBuilder: (context, index) {
                   final memberUid = familyMemberUids[index];
-                  final name = familyMembersNames.isNotEmpty
-                      ? familyMembersNames[index]
-                      : 'Unknown';
-                  final email = familyMembersEmails.isNotEmpty
-                      ? familyMembersEmails[index]
-                      : 'Unknown';
+                  final name = familyMembersNames[index];
+                  final email = familyMembersEmails[index];
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
@@ -413,9 +413,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(email),
                         ],
