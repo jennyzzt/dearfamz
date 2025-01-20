@@ -89,7 +89,6 @@ class _SignUpNamePageState extends State<SignUpNamePage> {
     return Scaffold(
       // Use your custom AppBar
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         centerTitle: true,
         title: AppBarTitle(),
       ),

@@ -102,9 +102,12 @@ class FamilyAnswerCard extends StatelessWidget {
 
           // --------- OPTIONAL IMAGE FLUSH WITH CARD EDGES ---------
           if (answerImageUrl != null && answerImageUrl!.isNotEmpty)
-            Image.network(
-              answerImageUrl!,
-              fit: BoxFit.cover,
+            Center(
+              child: Image.network(
+                answerImageUrl!,
+                width: double.infinity,
+                fit: BoxFit.contain,
+              ),
             ),
         ],
       ),
