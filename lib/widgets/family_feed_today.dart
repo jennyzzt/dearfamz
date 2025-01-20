@@ -17,8 +17,8 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
   /// Whether we are currently loading data
   bool _isLoadingAnswers = false;
 
-  /// Map to cache userId -> name lookups
-  final Map<String, String> _nameCache = {};
+  /// Cache of userId -> { 'name': ..., 'photoUrl': ... }
+  final Map<String, Map<String, String?>> _userCache = {};
 
   @override
   void initState() {
@@ -26,7 +26,6 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
     _loadFamilyAnswersToday();
   }
 
-  /// Loads today's answers from all family members
   Future<void> _loadFamilyAnswersToday() async {
     setState(() {
       _isLoadingAnswers = true;
@@ -35,9 +34,7 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() {
-          _isLoadingAnswers = false;
-        });
+        setState(() => _isLoadingAnswers = false);
         return;
       }
 
@@ -54,9 +51,8 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
         return;
       }
 
-      final List<String> familyMemberUids = List<String>.from(
-        userDoc.data()?['familyMembers'] ?? [],
-      );
+      final List<String> familyMemberUids =
+          List<String>.from(userDoc.data()?['familyMembers'] ?? []);
 
       if (familyMemberUids.isEmpty) {
         setState(() {
@@ -78,10 +74,7 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
       final querySnap = await FirebaseFirestore.instance
           .collection('inputfeeds')
           .where('userId', whereIn: familyMemberUids)
-          .where(
-            'createdAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(todayMidnight),
-          )
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(todayMidnight))
           .orderBy('createdAt', descending: true)
           .get();
 
@@ -97,24 +90,28 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
     }
   }
 
-  /// Fetch user name by userId. Caches the result in _nameCache to avoid repeated lookups.
-  Future<String?> _fetchName(String userId) async {
-    if (_nameCache.containsKey(userId)) {
-      return _nameCache[userId];
+  /// Fetch user info (name + photoUrl), caching so we only do one doc fetch per user.
+  Future<Map<String, String?>> _fetchUserInfo(String userId) async {
+    // Check cache first
+    if (_userCache.containsKey(userId)) {
+      return _userCache[userId]!;
     }
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .get();
-      final name = userDoc.data()?['name'] as String?;
-      if (name != null) {
-        _nameCache[userId] = name;
-      }
-      return name;
+
+      final data = userDoc.data();
+      final name = data?['name'] as String? ?? 'Unknown';
+      final photoUrl = data?['photoUrl'] as String? ?? '';
+
+      final result = {'name': name, 'photoUrl': photoUrl};
+      _userCache[userId] = result;
+      return result;
     } catch (e) {
-      debugPrint('Error fetching name for userId $userId: $e');
-      return 'Unknown';
+      debugPrint('Error fetching data for userId $userId: $e');
+      return {'name': 'Unknown', 'photoUrl': ''};
     }
   }
 
@@ -131,6 +128,7 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
       );
     }
 
+    // Build the list
     return ListView.builder(
       shrinkWrap: true, // so it can be placed in a Column
       physics: const NeverScrollableScrollPhysics(), // disable its own scroll
@@ -144,17 +142,29 @@ class _FamilyFeedTodayState extends State<FamilyFeedToday> {
         final createdAt =
             (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
         final userId = data['userId'] as String? ?? '';
+        final imageUrl = data['imageUrl'] as String? ?? '';
 
-        return FutureBuilder<String?>(
-          future: _fetchName(userId),
+        // We now fetch name+photo in a single shot
+        return FutureBuilder<Map<String, String?>>(
+          future: _fetchUserInfo(userId),
           builder: (context, snapshot) {
-            final userName = snapshot.data ?? 'Loading...';
+            if (!snapshot.hasData) {
+              return const ListTile(
+                title: Text('Loading user info...'),
+                subtitle: Text('...'),
+              );
+            }
+            final userInfo = snapshot.data!;
+            final userName = userInfo['name'] ?? 'Unknown';
+            final photoUrl = userInfo['photoUrl'] ?? '';
+
             return FamilyAnswerCard(
               question: question,
               answer: answer,
               createdAt: createdAt,
-              // Pass the name instead of the email
               name: userName,
+              photoUrl: photoUrl,
+              answerImageUrl: imageUrl,
             );
           },
         );

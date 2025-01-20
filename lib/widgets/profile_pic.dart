@@ -1,5 +1,3 @@
-// lib/widgets/profile_pic.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 
@@ -7,27 +5,27 @@ import 'package:flutter/material.dart';
 ///
 /// [radius]: Optional circle avatar radius. Defaults to 50.
 /// [selectedImageFile]: Local file if the user picks an image.
-/// [photoURL]: Network image URL if available.
+/// [photoUrl]: Network image URL if available.
 /// [initialLetter]: Fallback letter if neither file nor URL is present.
 /// [showCameraIcon]: Whether to show a small camera icon overlay.
 /// [onCameraTap]: Callback when the camera icon is pressed.
 class ProfilePic extends StatelessWidget {
   final double? radius;
   final File? selectedImageFile;
-  final String? photoURL;
+  final String? photoUrl;
   final String initialLetter;
   final bool showCameraIcon;
   final VoidCallback? onCameraTap;
 
   const ProfilePic({
-    Key? key,
+    super.key,
     this.radius,
     this.selectedImageFile,
-    this.photoURL,
+    this.photoUrl,
     required this.initialLetter,
     this.showCameraIcon = false,
     this.onCameraTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,11 +42,11 @@ class ProfilePic extends StatelessWidget {
             backgroundImage: FileImage(selectedImageFile!),
           )
 
-        // 2) Otherwise, if there's a photoURL, show the network image
-        else if (photoURL != null && photoURL!.isNotEmpty)
+        // 2) Otherwise, if there's a photoUrl, show the network image
+        else if (photoUrl != null && photoUrl!.isNotEmpty)
           CircleAvatar(
             radius: avatarRadius,
-            backgroundImage: NetworkImage(photoURL!),
+            backgroundImage: NetworkImage(photoUrl!),
           )
 
         // 3) Otherwise, show a circle with the user's initial

@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:dearfamz/editfamily_page.dart';
-import 'package:dearfamz/inputfeed_page.dart';
+import 'package:dearfamz/connecttoday_page.dart';
 import 'package:dearfamz/profile_page.dart';
 import 'package:dearfamz/widgets/family_feed_today.dart';
 import 'package:dearfamz/widgets/family_feed_allbuttoday.dart';
@@ -29,7 +29,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onConnectToday() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const InputFeedPage()),
+      MaterialPageRoute(builder: (context) => const ConnectTodayPage()),
     );
   }
 
@@ -41,27 +41,29 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  /// Fetch the current user's Firestore doc to get the name
-  Future<String> _getUserName() async {
+  /// Fetch the current user's Firestore doc to get the name & photoUrl
+  Future<Map<String, dynamic>> _getUserData() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      return '';
+      return {};
     }
 
     final docRef = FirebaseFirestore.instance.collection('users').doc(currentUser.uid);
     final docSnap = await docRef.get();
 
     if (!docSnap.exists) {
-      return '';
+      return {};
     }
 
     final data = docSnap.data();
     if (data == null) {
-      return '';
+      return {};
     }
 
-    final name = data['name'] as String? ?? '';
-    return name;
+    return {
+      'name': data['name'] ?? '',
+      'photoUrl': data['photoUrl'] ?? '',
+    };
   }
 
   /// Helper to create "----- Label -----" style section headers
@@ -93,12 +95,11 @@ class _MyHomePageState extends State<MyHomePage> {
         title: AppBarTitle(),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          // We use a FutureBuilder to get the user's name before building the avatar
-          FutureBuilder<String>(
-            future: _getUserName(),
+          FutureBuilder<Map<String, dynamic>>(
+            future: _getUserData(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                // While loading, show a placeholder or a spinner
+                // While loading, show a small spinner or placeholder
                 return const Padding(
                   padding: EdgeInsets.only(right: 16.0),
                   child: Center(child: CircularProgressIndicator()),
@@ -106,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
               }
 
               if (snapshot.hasError) {
-                // If there's an error, show a fallback
+                // If there's an error, show a fallback icon or letter
                 return Padding(
                   padding: const EdgeInsets.only(right: 16.0),
                   child: GestureDetector(
@@ -119,10 +120,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 );
               }
 
-              // Extract the name and get the first letter
-              final name = snapshot.data ?? '';
-              final firstLetter =
-                  name.isNotEmpty ? name[0].toUpperCase() : '?';
+              // Extract name and photoUrl
+              final data = snapshot.data ?? {};
+              final name = data['name'] as String? ?? '';
+              final photoUrl = data['photoUrl'] as String? ?? '';
+
+              // Fallback initial letter if no name
+              final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),
@@ -131,10 +135,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: ProfilePic(
                     radius: 20, // Smaller radius for the app bar
                     selectedImageFile: null,
-                    photoURL: null,
+                    photoUrl: photoUrl,
                     initialLetter: firstLetter,
-                    showCameraIcon: false,
-                    onCameraTap: null,
+                    showCameraIcon: false, // Always false here
+                    onCameraTap: null,     // No action in the AppBar
                   ),
                 ),
               );

@@ -2,13 +2,14 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:dearfamz/login_page.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dearfamz/widgets/profile_pic.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -31,6 +32,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// Firestore user doc reference.
   DocumentReference<Map<String, dynamic>>? _userDocRef;
+
+  /// For storing the existing PhotoUrl (if any).
+  String? _existingPhotoUrl;
+
+  /// Flag to show a loading spinner while saving
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -95,25 +102,69 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Update Firestore with the new name/email
+  /// Uploads file to Firebase Storage and returns the download URL
+  Future<String> _uploadImage(File imageFile) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+      // Create a unique file path in storage
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('profile_pics')
+          .child('$userId.jpg');
+
+      // Upload the file
+      await ref.putFile(imageFile);
+
+      // Return the download URL
+      final downloadURL = await ref.getDownloadURL();
+      return downloadURL;
+    } catch (e) {
+      rethrow; // let caller handle
+    }
+  }
+
+  /// Update Firestore with the new name/email & PhotoUrl
   Future<void> _saveChanges() async {
     if (_userDocRef == null) return;
+
+    setState(() {
+      _isSaving = true; // Start showing the loading spinner
+    });
+
     try {
+      String? newPhotoUrl = _existingPhotoUrl;
+
+      // If user picked a new image, upload it
+      if (_selectedImageFile != null) {
+        newPhotoUrl = await _uploadImage(_selectedImageFile!);
+      }
+
+      // Update Firestore
       await _userDocRef!.update({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
+        'photoUrl': newPhotoUrl ?? '',
       });
+
+      // Update local state
+      setState(() {
+        _existingPhotoUrl = newPhotoUrl;
+        _isEditing = false;
+        _selectedImageFile = null; // Reset after saving
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully!')),
       );
-
-      setState(() {
-        _isEditing = false;
-      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error updating profile: $e')),
       );
+    } finally {
+      // Stop showing the loading spinner (in both success & error cases)
+      setState(() {
+        _isSaving = false;
+      });
     }
   }
 
@@ -122,6 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _nameController.text = _originalName;
       _emailController.text = _originalEmail;
+      _selectedImageFile = null; // Discard new image if any
       _isEditing = false;
     });
   }
@@ -138,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-            TextButton(
+          TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
               'Sign Out',
@@ -208,146 +260,167 @@ class _ProfilePageState extends State<ProfilePage> {
             _emailController.text = userData['email'] ?? '';
           }
 
+          // Store the existing PhotoUrl (for display if no new pic is selected)
+          _existingPhotoUrl ??= userData['photoUrl'];
+
           // For the circle avatar’s initial:
           final name = _nameController.text;
           final email = _emailController.text;
           final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Profile Pic at the top
-                ProfilePic(
-                  radius: 60,
-                  selectedImageFile: _selectedImageFile,
-                  initialLetter: firstLetter,
-                  showCameraIcon: true,
-                  onCameraTap: _pickImage,
-                ),
-                const SizedBox(height: 20),
-
-                // Show different UIs depending on whether we're editing:
-                if (!_isEditing) 
-                  // --- VIEW MODE (no icons, centered) ---
-                  Column(
-                    children: [
-                      Text(
-                        name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 30,      // Adjust as desired
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        email,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,      // Adjust as desired
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  // --- EDIT MODE (TextFormFields with icons) ---
-                  Column(
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: _buildInputDecoration(
-                          'Name',
-                          Icons.person_outline,
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: _buildInputDecoration(
-                          'Email',
-                          Icons.email_outlined,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                const SizedBox(height: 40),
-
-                // ---- EDIT / SAVE & CANCEL BUTTONS ----
-                if (!_isEditing)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18.0),
-                      ),
-                      onPressed: () {
-                        // Capture originals before editing
-                        _originalName = _nameController.text;
-                        _originalEmail = _emailController.text;
-                        setState(() {
-                          _isEditing = true;
-                        });
-                      },
-                      child: const Text(
-                        'Edit',
-                        style: TextStyle(fontSize: 18),
-                      ),
+          // We can stack the main UI with a loading overlay
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Profile Pic at the top
+                    ProfilePic(
+                      radius: 60,
+                      selectedImageFile: _selectedImageFile,
+                      photoUrl: _existingPhotoUrl,
+                      initialLetter: firstLetter,
+                      showCameraIcon: _isEditing,
+                      onCameraTap: _isEditing ? _pickImage : null,
                     ),
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
+                    const SizedBox(height: 20),
+
+                    // Show different UIs depending on whether we're editing:
+                    if (!_isEditing)
+                      // --- VIEW MODE (no icons, centered) ---
+                      Column(
+                        children: [
+                          Text(
+                            name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 30, // Adjust as desired
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            email,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16, // Adjust as desired
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      // --- EDIT MODE (TextFormFields with icons) ---
+                      Column(
+                        children: [
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: _buildInputDecoration(
+                              'Name',
+                              Icons.person_outline,
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: _buildInputDecoration(
+                              'Email',
+                              Icons.email_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    const SizedBox(height: 40),
+
+                    // ---- EDIT / SAVE & CANCEL BUTTONS ----
+                    if (!_isEditing)
+                      SizedBox(
+                        width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 18.0),
                           ),
-                          onPressed: _saveChanges,
+                          onPressed: () {
+                            // Capture originals before editing
+                            _originalName = _nameController.text;
+                            _originalEmail = _emailController.text;
+                            setState(() {
+                              _isEditing = true;
+                            });
+                          },
                           child: const Text(
-                            'Save',
+                            'Edit',
                             style: TextStyle(fontSize: 18),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey,
-                            padding: const EdgeInsets.symmetric(vertical: 18.0),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 18.0),
+                              ),
+                              onPressed: _saveChanges,
+                              child: const Text(
+                                'Save',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                            ),
                           ),
-                          onPressed: _cancelEditing,
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(fontSize: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 18.0),
+                              ),
+                              onPressed: _cancelEditing,
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                // ---- SIGN OUT BUTTON ----
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 18.0),
-                    ),
-                    onPressed: _confirmSignOut,
-                    child: const Text(
-                      'Sign Out',
-                      style: TextStyle(
-                        fontSize: 18,
+                    // ---- SIGN OUT BUTTON ----
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 18.0),
+                        ),
+                        onPressed: _confirmSignOut,
+                        child: const Text(
+                          'Sign Out',
+                          style: TextStyle(
+                            fontSize: 18,
+                          ),
+                        ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              // --- LOADING OVERLAY ---
+              if (_isSaving)
+                // This container covers the entire screen and blocks user input
+                Container(
+                  color: Colors.black54, // semi-transparent
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
                   ),
                 ),
-              ],
-            ),
+            ],
           );
         },
       ),

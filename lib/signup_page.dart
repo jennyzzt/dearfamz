@@ -53,7 +53,7 @@ class _SignUpPageState extends State<SignUpPage> {
     Navigator.push(
       context,
       SignUpNamePage.route(
-        emailController.text.trim(),
+        emailController.text.toLowerCase().trim(),
         passwordController.text.trim(),
       ),
     );

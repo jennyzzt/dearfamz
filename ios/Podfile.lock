@@ -1163,12 +1163,19 @@ PODS:
   - Firebase/Firestore (11.6.0):
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 11.6.0)
+  - Firebase/Storage (11.6.0):
+    - Firebase/CoreOnly
+    - FirebaseStorage (~> 11.6.0)
   - firebase_auth (5.4.0):
     - Firebase/Auth (= 11.6.0)
     - firebase_core
     - Flutter
   - firebase_core (3.10.0):
     - Firebase/CoreOnly (= 11.6.0)
+    - Flutter
+  - firebase_storage (12.4.0):
+    - Firebase/Storage (= 11.6.0)
+    - firebase_core
     - Flutter
   - FirebaseAppCheckInterop (11.6.0)
   - FirebaseAuth (11.6.0):
@@ -1210,6 +1217,13 @@ PODS:
     - leveldb-library (~> 1.22)
     - nanopb (~> 3.30910.0)
   - FirebaseSharedSwift (11.6.0)
+  - FirebaseStorage (11.6.0):
+    - FirebaseAppCheckInterop (~> 11.0)
+    - FirebaseAuthInterop (~> 11.0)
+    - FirebaseCore (~> 11.6.0)
+    - FirebaseCoreExtension (~> 11.6.0)
+    - GoogleUtilities/Environment (~> 8.0)
+    - GTMSessionFetcher/Core (< 5.0, >= 3.4)
   - Flutter (1.0.0)
   - GoogleUtilities/AppDelegateSwizzler (8.0.2):
     - GoogleUtilities/Environment
@@ -1337,6 +1351,7 @@ DEPENDENCIES:
   - cloud_firestore (from `.symlinks/plugins/cloud_firestore/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
+  - firebase_storage (from `.symlinks/plugins/firebase_storage/ios`)
   - Flutter (from `Flutter`)
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
 
@@ -1354,6 +1369,7 @@ SPEC REPOS:
     - FirebaseFirestore
     - FirebaseFirestoreInternal
     - FirebaseSharedSwift
+    - FirebaseStorage
     - GoogleUtilities
     - "gRPC-C++"
     - gRPC-Core
@@ -1369,6 +1385,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
     :path: ".symlinks/plugins/firebase_core/ios"
+  firebase_storage:
+    :path: ".symlinks/plugins/firebase_storage/ios"
   Flutter:
     :path: Flutter
   image_picker_ios:
@@ -1381,6 +1399,7 @@ SPEC CHECKSUMS:
   Firebase: 374a441a91ead896215703a674d58cdb3e9d772b
   firebase_auth: ecd44c57a46c4942b58f13615e0bbb178ccff47a
   firebase_core: 2337982fb78ee4d8d91e608b0a3d4f44346a93c8
+  firebase_storage: 6f87096e0769121a546fd7a46b16e2064846361c
   FirebaseAppCheckInterop: 347aa09a805219a31249b58fc956888e9fcb314b
   FirebaseAuth: 0304982cfe00df8d49bf533bc4becd3de36c7122
   FirebaseAuthInterop: a919d415797d23b7bfe195a04f322b86c65020ef
@@ -1390,6 +1409,7 @@ SPEC CHECKSUMS:
   FirebaseFirestore: d5dcc15724f291fe4b415322754bfa01616037fe
   FirebaseFirestoreInternal: db478fdaeb98fe8686ff49e600f3871c224a76ff
   FirebaseSharedSwift: a4e5dfca3e210633bb3a3dfb94176c019211948b
+  FirebaseStorage: 52fb65a69d3e87675186881a08e2a5db86452ace
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   GoogleUtilities: 26a3abef001b6533cf678d3eb38fd3f614b7872d
   "gRPC-C++": 2fa52b3141e7789a28a737f251e0c45b4cb20a87

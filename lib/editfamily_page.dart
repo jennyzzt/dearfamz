@@ -20,6 +20,9 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
   /// A list to hold the corresponding emails for displaying in the UI.
   List<String> familyMembersEmails = [];
 
+  /// A list to hold the corresponding photoUrls.
+  List<String?> familyMembersPhotoUrls = []; // NEW
+
   /// Text controller for searching by email.
   final TextEditingController _searchEmailController = TextEditingController();
 
@@ -32,6 +35,9 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
   /// The searched user’s Email (found by email)
   String? _searchedUserEmail;
 
+  /// The searched user’s PhotoURL (found by email) - NEW
+  String? _searchedUserPhotoURL;
+
   /// An error message if a search fails
   String? _searchErrorMessage;
 
@@ -42,7 +48,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
   }
 
   /// Fetch the current user's familyMembers (UIDs) from Firestore,
-  /// then fetch their [name] & [email].
+  /// then fetch their [name], [email], and [photoUrl].
   Future<void> _fetchFamilyMembers() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return; // Not logged in, nothing to fetch.
@@ -57,6 +63,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
         familyMemberUids = [];
         familyMembersNames = [];
         familyMembersEmails = [];
+        familyMembersPhotoUrls = [];
       });
       return;
     }
@@ -67,6 +74,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
         familyMemberUids = [];
         familyMembersNames = [];
         familyMembersEmails = [];
+        familyMembersPhotoUrls = [];
       });
       return;
     }
@@ -78,24 +86,26 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
         familyMemberUids = uidList;
       });
 
-      // Now fetch each UID’s name/email and build our lists
+      // Now fetch each UID’s name/email/photoUrl and build our lists
       await _fetchDataForFamilyUids(uidList);
     } else {
       setState(() {
         familyMemberUids = [];
         familyMembersNames = [];
         familyMembersEmails = [];
+        familyMembersPhotoUrls = [];
       });
     }
   }
 
-  /// For each UID in [uidList], fetch the user document and retrieve [name] & [email].
+  /// For each UID in [uidList], fetch the user document and retrieve [name], [email], [photoUrl].
   /// Then store those in the respective lists in the same order as [uidList].
   Future<void> _fetchDataForFamilyUids(List<String> uidList) async {
     if (uidList.isEmpty) {
       setState(() {
         familyMembersNames = [];
         familyMembersEmails = [];
+        familyMembersPhotoUrls = [];
       });
       return;
     }
@@ -107,56 +117,65 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
           .where(FieldPath.documentId, whereIn: uidList)
           .get();
 
-      // Create a map from UID -> (name, email)
-      final Map<String, Map<String, String>> uidToData = {};
+      // Create a map from UID -> (name, email, photoUrl)
+      final Map<String, Map<String, dynamic>> uidToData = {};
 
       for (var doc in querySnap.docs) {
         final data = doc.data();
         final name = data['name'] as String? ?? 'Unknown';
         final email = data['email'] as String? ?? 'Unknown';
+        final photoUrl = data['photoUrl'] as String? ?? '';
         uidToData[doc.id] = {
           'name': name,
           'email': email,
+          'photoUrl': photoUrl,
         };
       }
 
-      // Rebuild the name & email arrays in the same order as uidList
+      // Rebuild the arrays in the same order as uidList
       final namesInOrder = <String>[];
       final emailsInOrder = <String>[];
+      final photosInOrder = <String?>[];
 
       for (var uid in uidList) {
         final info = uidToData[uid];
         if (info != null) {
           namesInOrder.add(info['name'] ?? 'Unknown');
           emailsInOrder.add(info['email'] ?? 'Unknown');
+          photosInOrder.add(info['photoUrl']);
         } else {
           namesInOrder.add('Unknown');
           emailsInOrder.add('Unknown');
+          photosInOrder.add(null);
         }
       }
 
       setState(() {
         familyMembersNames = namesInOrder;
         familyMembersEmails = emailsInOrder;
+        familyMembersPhotoUrls = photosInOrder;
       });
     } catch (e) {
       debugPrint('Error fetching data for family UIDs: $e');
       setState(() {
         familyMembersNames = [];
         familyMembersEmails = [];
+        familyMembersPhotoUrls = [];
       });
     }
   }
 
-  /// Searches for a user by email in Firestore (collects name & email).
+  /// Searches for a user by email in Firestore (collects name, email, photoUrl).
   Future<void> _searchForUserByEmail(String email) async {
     setState(() {
       _searchedUserUid = null;
       _searchedUserName = null;
       _searchedUserEmail = null;
+      _searchedUserPhotoURL = null;
       _searchErrorMessage = null;
     });
 
+    email = email.toLowerCase();
     final querySnapshot = await FirebaseFirestore.instance
         .collection('users')
         .where('email', isEqualTo: email)
@@ -173,11 +192,12 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
     final userDoc = querySnapshot.docs.first;
     final userData = userDoc.data();
 
-    // Save the doc's ID (UID), name, and email
+    // Save the doc's ID (UID), name, email, photoUrl
     setState(() {
       _searchedUserUid = userDoc.id;
       _searchedUserName = userData['name'] as String? ?? 'Unknown';
       _searchedUserEmail = userData['email'] as String? ?? 'Unknown';
+      _searchedUserPhotoURL = userData['photoUrl'] as String? ?? '';
     });
   }
 
@@ -202,6 +222,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
       _searchedUserUid = null;
       _searchedUserName = null;
       _searchedUserEmail = null;
+      _searchedUserPhotoURL = null;
       _searchEmailController.clear();
     });
   }
@@ -213,7 +234,8 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Remove Family Member'),
-          content: Text('Are you sure you want to remove "$name" from your family?'),
+          content:
+              Text('Are you sure you want to remove "$name" from your family?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false), // Cancel
@@ -242,7 +264,10 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
 
-    await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).update({
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .update({
       'familyMembers': FieldValue.arrayRemove([memberUid])
     });
 
@@ -320,7 +345,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
             ],
             const SizedBox(height: 8),
 
-            // Show the found user's name & email in a single row with a + icon
+            // Show the found user's name & email with a + icon
             if (_searchedUserUid != null &&
                 _searchedUserName != null &&
                 _searchedUserEmail != null) ...[
@@ -337,7 +362,24 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Show name & email in two lines
+                    // Show a leading avatar + name & email
+                    CircleAvatar(
+                      // If photoUrl is non-empty, show it
+                      backgroundImage: (_searchedUserPhotoURL != null &&
+                              _searchedUserPhotoURL!.isNotEmpty)
+                          ? NetworkImage(_searchedUserPhotoURL!)
+                          : null,
+                      backgroundColor: Colors.blue,
+                      child: (_searchedUserPhotoURL == null ||
+                              _searchedUserPhotoURL!.isEmpty)
+                          ? Text(
+                              _searchedUserName!.isNotEmpty
+                                  ? _searchedUserName![0].toUpperCase()
+                                  : '?',
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,9 +393,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                           ),
                           Text(
                             _searchedUserEmail!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                            ),
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ],
                       ),
@@ -384,7 +424,8 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                 child: Text('You have no family members yet.'),
               ),
             ] else if (familyMemberUids.length != familyMembersNames.length ||
-                      familyMemberUids.length != familyMembersEmails.length) ...[
+                familyMemberUids.length != familyMembersEmails.length ||
+                familyMemberUids.length != familyMembersPhotoUrls.length) ...[
               // Still loading or out of sync
               const Center(child: CircularProgressIndicator()),
             ] else ...[
@@ -396,6 +437,7 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                   final memberUid = familyMemberUids[index];
                   final name = familyMembersNames[index];
                   final email = familyMembersEmails[index];
+                  final photoUrl = familyMembersPhotoUrls[index];
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
@@ -404,6 +446,17 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                            ? NetworkImage(photoUrl)
+                            : null,
+                        backgroundColor: Colors.blue,
+                        child: (photoUrl == null || photoUrl.isEmpty)
+                            ? Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              )
+                            : null,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
@@ -421,7 +474,8 @@ class _EditFamilyPageState extends State<EditFamilyPage> {
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
                         tooltip: 'Remove from Family',
-                        onPressed: () => _confirmRemoveFamilyMember(memberUid, name),
+                        onPressed: () =>
+                            _confirmRemoveFamilyMember(memberUid, name),
                       ),
                     ),
                   );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'family_answer_card.dart';
 
 class FamilyFeedAllButToday extends StatefulWidget {
-  const FamilyFeedAllButToday({Key? key}) : super(key: key);
+  const FamilyFeedAllButToday({super.key});
 
   @override
   State<FamilyFeedAllButToday> createState() => _FamilyFeedAllButTodayState();
@@ -13,12 +13,10 @@ class FamilyFeedAllButToday extends StatefulWidget {
 class _FamilyFeedAllButTodayState extends State<FamilyFeedAllButToday> {
   /// A list of past answers from family members
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _familyAnswersPast = [];
-
-  /// Whether we are currently loading data
   bool _isLoadingAnswers = false;
 
-  /// Map to cache userId -> name lookups
-  final Map<String, String> _nameCache = {};
+  /// Cache user data: userId -> { 'name': ..., 'photoUrl': ... }
+  final Map<String, Map<String, String?>> _userCache = {}; // UPDATED
 
   @override
   void initState() {
@@ -26,18 +24,13 @@ class _FamilyFeedAllButTodayState extends State<FamilyFeedAllButToday> {
     _loadFamilyAnswersAllButToday();
   }
 
-  /// Loads all answers from family members that are before today’s midnight
   Future<void> _loadFamilyAnswersAllButToday() async {
-    setState(() {
-      _isLoadingAnswers = true;
-    });
+    setState(() => _isLoadingAnswers = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() {
-          _isLoadingAnswers = false;
-        });
+        setState(() => _isLoadingAnswers = false);
         return;
       }
 
@@ -54,9 +47,8 @@ class _FamilyFeedAllButTodayState extends State<FamilyFeedAllButToday> {
         return;
       }
 
-      final List<String> familyMemberUids = List<String>.from(
-        userDoc.data()?['familyMembers'] ?? [],
-      );
+      final List<String> familyMemberUids =
+          List<String>.from(userDoc.data()?['familyMembers'] ?? []);
 
       if (familyMemberUids.isEmpty) {
         setState(() {
@@ -66,7 +58,6 @@ class _FamilyFeedAllButTodayState extends State<FamilyFeedAllButToday> {
         return;
       }
 
-      // Start of today (midnight)
       final todayMidnight = DateTime.now().copyWith(
         hour: 0,
         minute: 0,
@@ -88,30 +79,29 @@ class _FamilyFeedAllButTodayState extends State<FamilyFeedAllButToday> {
     } catch (e) {
       debugPrint('Error loading all-but-today’s family answers: $e');
     } finally {
-      setState(() {
-        _isLoadingAnswers = false;
-      });
+      setState(() => _isLoadingAnswers = false);
     }
   }
 
-  /// Fetch user name by userId. Caches the result in _nameCache to avoid repeated lookups.
-  Future<String?> _fetchName(String userId) async {
-    if (_nameCache.containsKey(userId)) {
-      return _nameCache[userId];
+  /// Same pattern as above: fetch name + photoUrl, store in cache
+  Future<Map<String, String?>> _fetchUserInfo(String userId) async {
+    if (_userCache.containsKey(userId)) {
+      return _userCache[userId]!;
     }
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .get();
-      final name = userDoc.data()?['name'] as String?;
-      if (name != null) {
-        _nameCache[userId] = name;
-      }
-      return name;
+      final data = userDoc.data();
+      final name = data?['name'] as String? ?? 'Unknown';
+      final photoUrl = data?['photoUrl'] as String? ?? '';
+      final result = {'name': name, 'photoUrl': photoUrl};
+      _userCache[userId] = result;
+      return result;
     } catch (e) {
       debugPrint('Error fetching name for userId $userId: $e');
-      return 'Unknown';
+      return {'name': 'Unknown', 'photoUrl': ''};
     }
   }
 
@@ -141,17 +131,29 @@ class _FamilyFeedAllButTodayState extends State<FamilyFeedAllButToday> {
         final createdAt =
             (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
         final userId = data['userId'] as String? ?? '';
+        final imageUrl = data['imageUrl'] as String? ?? '';
 
-        return FutureBuilder<String?>(
-          future: _fetchName(userId),
+        return FutureBuilder<Map<String, String?>>(
+          future: _fetchUserInfo(userId),
           builder: (context, snapshot) {
-            final userName = snapshot.data ?? 'Loading...';
+            if (!snapshot.hasData) {
+              return const ListTile(
+                title: Text('Loading user info...'),
+                subtitle: Text('...'),
+              );
+            }
+            final userInfo = snapshot.data!;
+            final userName = userInfo['name'] ?? 'Unknown';
+            final photoUrl = userInfo['photoUrl'] ?? '';
+
             return FamilyAnswerCard(
               question: question,
               answer: answer,
               createdAt: createdAt,
               name: userName,
+              photoUrl: photoUrl,
               showDateInsteadOfTime: true,
+              answerImageUrl: imageUrl,
             );
           },
         );
