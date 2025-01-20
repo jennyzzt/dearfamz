@@ -6,7 +6,14 @@ DearFamz prompts families at regular intervals (daily or weekly) to share genuin
 
 ## Screenshots
 
-TODO
+Signup Page               | Signup Name Page                | (Home Page) Feed Today               |  (Home Page) Feed All Time
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/signup_page_filled.png?raw=true)|![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/signup_name_page_filled.png?raw=true)|![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/family_feed_today.png?raw=true)|![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/family_feed_allbuttoday.png?raw=true)|
+
+Connect Today Page         | Edit Family Page         |   Profile Page               |  Profile Edit Page
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/connecttoday_page_pic.png?raw=true)|![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/editfamily_page.png?raw=true)|![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/profile_page.png?raw=true)|![](https://github.com/jennyzzt/dearfamz/blob/main/screenshots/profile_page_edit.png?raw=true)|
+
 
 ## Project Structure
 - `lib/` contains all the ui pages
