@@ -1,16 +1,26 @@
-# dearfamz
+<h1 align="center">DearFamz</h1>
 
-A new Flutter project.
+Communicating with my parents has always been a challenge, but I still want to stay connected with them in a way that is not as intrusive to my private life as I would like. Hence, I made DearFamz, a mobile application that aims to help family members connect and understand each other better through simple interactions.
 
-## Getting Started
+DearFamz prompts families at regular intervals (daily or weekly) to share genuine answers to engaging questions. Choose what you wish to share, keep healthy boundaries, and stay connected with your loved ones. This app is heavily inspired by [BeReal](https://bereal.com/).
 
-This project is a starting point for a Flutter application.
+## Screenshots
 
-A few resources to get you started if this is your first Flutter project:
+TODO
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Project Structure
+- `lib/` contains all the ui pages
+    - `flutter run` to run
+- `functions/` contains code to generate questions weekly
+    - `firebase emulators:start --only firestore` to emulate Firestore
+    - `firebase functions:shell` to test the functions
+    - `firebase deploy --only functions` to deploy to production 
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Languages & Tools
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white&style=for-the-badge)](https://flutter.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=white&style=for-the-badge)](https://firebase.google.com)
+[![Visual Studio Code](https://img.shields.io/badge/Visual_Studio_Code-0078d7?logo=visual-studio-code&logoColor=white&style=for-the-badge)](https://code.visualstudio.com)
+[![GitHub Copilot](https://img.shields.io/badge/GitHub_Copilot-000000?logo=github&logoColor=white&style=for-the-badge)](https://github.com/features/copilot)
+
+## License
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](https://github.com/jennyzzt/dearfamz/blob/main/LICENSE)
