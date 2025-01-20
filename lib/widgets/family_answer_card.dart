@@ -28,7 +28,7 @@ class FamilyAnswerCard extends StatelessWidget {
         : '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       // Ensures the card clips its child (the image) to the rounded border
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(

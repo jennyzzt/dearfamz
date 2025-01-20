@@ -321,12 +321,25 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           const SizedBox(height: 15),
+                          // Non-editable Email Field
                           TextFormField(
                             controller: _emailController,
                             decoration: _buildInputDecoration(
-                              'Email',
+                              'Email (Unchangeable)',
                               Icons.email_outlined,
+                            ).copyWith(
+                              prefixIcon: Icon(Icons.email_outlined, color: Colors.grey),
+                              enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.grey, width: 1.5),
+                              borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(color: Colors.grey, width: 2.0),
+                              borderRadius: BorderRadius.circular(8.0),
+                              ),
                             ),
+                            readOnly: true, // Make the field non-editable
+                            style: const TextStyle(color: Colors.grey), // Greyed-out text
                           ),
                         ],
                       ),
@@ -391,22 +404,23 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 20),
 
                     // ---- SIGN OUT BUTTON ----
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          padding: const EdgeInsets.symmetric(vertical: 18.0),
-                        ),
-                        onPressed: _confirmSignOut,
-                        child: const Text(
-                          'Sign Out',
-                          style: TextStyle(
-                            fontSize: 18,
+                    if (!_isEditing)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            padding: const EdgeInsets.symmetric(vertical: 18.0),
+                          ),
+                          onPressed: _confirmSignOut,
+                          child: const Text(
+                            'Sign Out',
+                            style: TextStyle(
+                              fontSize: 18,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
